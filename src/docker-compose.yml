@@ -1,0 +1,7 @@
+version: "3"
+
+services:
+  cms:
+    image: "fcisco16/pa5:v1"
+    ports:
+      - "5000:5000"

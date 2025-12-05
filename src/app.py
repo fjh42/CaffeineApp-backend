@@ -19,19 +19,9 @@ def failure_response(description,status_code=500):
     """
     return json.dumps({"error":description}),status_code
 
-@app.before_first_request
-def initialize_database():
-    """
-    Initialize the database by creating the necessary tables.
-    """
-    DB.create_users_table()
-    DB.create_beverages_table()
-    DB.create_consumption_log_table()
-
 @app.route("/")
 def hello_world():
     return "Hello world!"
-
 
 # ==================== ADMIN ONLY ROUTES ====================
 
@@ -271,4 +261,3 @@ def update_consumption(log_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-    initialize_database()
