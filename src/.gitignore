@@ -1,3 +1,6 @@
 __pycache__
 instance
 tables.db
+.DS_Store
+venv/
+*.pyc
