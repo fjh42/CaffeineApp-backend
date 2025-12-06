@@ -39,7 +39,6 @@ def get_all_users():
 @app.route("/consumption", methods=["GET"])
 def get_all_consumption():
     """Admin endpoint to retrieve all consumption logs"""
-    # Get all users and compile their consumption logs
     users = DB.get_all_users()
     all_consumptions = []
     for user in users:
@@ -53,10 +52,25 @@ def get_all_consumption():
 def create_beverage():
     """Admin endpoint to create a new beverage"""
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+    
     name = body.get("name")
-    caffeine_content_mg = body.get("caffeine_content_mg")
     image_url = body.get("image_url")
     category = body.get("category")
+    caffeine_content_mg = body.get("caffeine_content_mg")
+    
+    if not name:
+        return failure_response("Field 'name' is required", 400)
+    if caffeine_content_mg is None:
+        return failure_response("Field 'caffeine_content_mg' is required", 400)
+    
+    try:
+        caffeine_content_mg = int(caffeine_content_mg)
+        if caffeine_content_mg < 0:
+            return failure_response("'caffeine_content_mg' must be non-negative", 400)
+    except (TypeError, ValueError):
+        return failure_response("'caffeine_content_mg' must be an integer", 400)
     
     beverage_id = DB.insert_beverage(name, caffeine_content_mg, image_url, category)
     return success_response({"id": beverage_id}, 201)
@@ -74,11 +88,28 @@ def delete_beverage(bev_id):
 @app.route("/beverages/<int:bev_id>", methods=["PUT"])
 def update_beverage(bev_id):
     """Admin endpoint to update beverage details"""
+    existing = DB.get_beverage_by_id(bev_id)
+    if not existing:
+        return failure_response("Beverage not found", 404)
+    
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+    
     name = body.get("name")
     caffeine_content_mg = body.get("caffeine_content_mg")
     image_url = body.get("image_url")
     category = body.get("category")
+
+    if not name:
+        return failure_response("Field 'name' cannot be empty", 400)
+
+    try:
+        caffeine_content_mg = int(caffeine_content_mg)
+        if caffeine_content_mg < 0:
+            return failure_response("'caffeine_content_mg' must be non-negative", 400)
+    except (TypeError, ValueError):
+        return failure_response("'caffeine_content_mg' must be an integer", 400)
     
     DB.update_beverage_by_id(bev_id, name, caffeine_content_mg, image_url, category)
     return success_response({"message": "Beverage updated"})
@@ -99,11 +130,41 @@ def get_beverages():
 def create_user():
     """Create a new user account"""
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+
     username = body.get("username")
     email = body.get("email")
     password_hash = body.get("password_hash")
     daily_caffeine_limit = body.get("daily_caffeine_limit")
     weight_lbs = body.get("weight_lbs", 160.0)
+    
+    missing = []
+    if not username:
+        missing.append("username")
+    if not email:
+        missing.append("email")
+    if not password_hash:
+        missing.append("password_hash")
+    if daily_caffeine_limit is None:
+        missing.append("daily_caffeine_limit")
+
+    if missing:
+        return failure_response(f"Missing required field(s): {', '.join(missing)}", 400)
+
+    try:
+        daily_caffeine_limit = int(daily_caffeine_limit)
+        if daily_caffeine_limit <= 0:
+            return failure_response("'daily_caffeine_limit' must be > 0", 400)
+    except (TypeError, ValueError):
+        return failure_response("'daily_caffeine_limit' must be an integer", 400)
+
+    try:
+        weight_lbs = float(weight_lbs)
+        if weight_lbs <= 0:
+            return failure_response("'weight_lbs' must be > 0", 400)
+    except (TypeError, ValueError):
+        return failure_response("'weight_lbs' must be a number", 400)
     
     user_id = DB.insert_user(username, email, password_hash, daily_caffeine_limit, weight_lbs)
     return success_response({"id": user_id}, 201)
@@ -116,7 +177,6 @@ def get_consumption_today(user_id):
     today = datetime.date.today().strftime("%Y-%m-%d")
     consumptions = DB.get_consumption_by_user_and_date(user_id, today)
     
-    # Calculate total caffeine and breakdown
     total_caffeine = 0
     breakdown = []
     for consumption in consumptions:
@@ -188,9 +248,30 @@ def get_user_stats(user_id):
 def log_consumption():
     """Log a new beverage consumption"""
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+    
     user_id = body.get("user_id")
     beverage_id = body.get("beverage_id")
     serving_count = body.get("serving_count", 1)
+
+    if user_id is None or beverage_id is None:
+        return failure_response("'user_id' and 'beverage_id' are required", 400)
+    
+    try:
+        user_id = int(user_id)
+        beverage_id = int(beverage_id)
+        serving_count = int(serving_count)
+    except (TypeError, ValueError):
+        return failure_response("'user_id', 'beverage_id', and 'serving_count' must be integers", 400)
+
+    if serving_count <= 0:
+        return failure_response("'serving_count' must be >= 1", 400)
+
+    if not DB.get_user_by_id(user_id):
+        return failure_response("User not found", 404)
+    if not DB.get_beverage_by_id(beverage_id):
+        return failure_response("Beverage not found", 404)
     
     consumption_id = DB.insert_consumption(user_id, beverage_id, serving_count)
     return success_response({"id": consumption_id}, 201)
@@ -200,12 +281,10 @@ def log_consumption():
 @app.route("/users/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
     """Delete a user account and all associated data"""
-    # Delete all consumption logs for this user
     consumptions = DB.get_consumption_by_user_id(user_id)
     for consumption in consumptions:
         DB.delete_consumption_by_id(consumption["id"])
     
-    # Delete the user
     DB.delete_user_by_id(user_id)
     return success_response({"message": "User account deleted"})
 
@@ -223,9 +302,24 @@ def delete_consumption(log_id):
 def update_caffeine_limit(user_id):
     """Update a user's daily caffeine limit"""
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+    
     new_limit = body.get("daily_caffeine_limit")
+    if new_limit is None:
+        return failure_response("'daily_caffeine_limit' is required", 400)
+    
+    try:
+        new_limit = int(new_limit)
+        if new_limit <= 0:
+            return failure_response("'daily_caffeine_limit' must be > 0", 400)
+    except (TypeError, ValueError):
+        return failure_response("'daily_caffeine_limit' must be an integer", 400)
     
     user = DB.get_user_by_id(user_id)
+    if not user:
+        return failure_response("User not found", 404)
+
     DB.update_user_by_id(user_id, user["username"], user["email"], user["password_hash"], new_limit, user["weight_lbs"])
     return success_response({"message": "Daily caffeine limit updated"})
 
@@ -235,13 +329,21 @@ def update_caffeine_limit(user_id):
 def update_consumption(log_id):
     """Edit an existing consumption log entry (serving count)"""
     body = request.get_json()
+    if body is None:
+        return failure_response("Request body must be JSON", 400)
+    
     new_serving_count = body.get("serving_count")
+    if new_serving_count is None:
+        return failure_response("'serving_count' is required", 400)
     
-    # Get consumption details to update
-    consumptions = DB.get_consumption_by_user_id(0)  # Temporary approach
+    try:
+        new_serving_count = int(new_serving_count)
+        if new_serving_count <= 0:
+            return failure_response("'serving_count' must be >= 1", 400)
+    except (TypeError, ValueError):
+        return failure_response("'serving_count' must be an integer", 400)
+    
     consumption = None
-    
-    # Find the consumption entry with matching ID
     all_users = DB.get_all_users()
     for user in all_users:
         user_consumptions = DB.get_consumption_by_user_id(user["id"])
@@ -253,7 +355,6 @@ def update_consumption(log_id):
             break
     
     if consumption:
-        beverage = DB.get_beverage_by_id(consumption["beverage_id"])
         DB.delete_consumption_by_id(log_id)
         DB.insert_consumption(consumption["user_id"], consumption["beverage_id"], new_serving_count)
         return success_response({"message": "Consumption entry updated"})
