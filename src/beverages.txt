@@ -1,0 +1,62 @@
+[
+    {
+        "name": "Celsius_355ml",
+        "caffeine_content_mg": 200,
+        "image_url": "https://m.media-amazon.com/images/I/71p2GkF-wcL._SL1500_.jpg",
+        "category": "energy_drink"
+    },
+    {
+        "name": "Red_Bull_250ml",
+        "caffeine_content_mg": 80,
+        "image_url": "https://m.media-amazon.com/images/I/61Nk7mItR1L._SL1500_.jpg",
+        "category": "energy_drink"
+    },
+    {
+        "name": "Monster_Green_473ml",
+        "caffeine_content_mg": 160,
+        "image_url": "https://m.media-amazon.com/images/I/61xQisGQ+SL._SL1500_.jpg",
+        "category": "energy_drink"
+    },
+    {
+        "name": "Bang_473ml",
+        "caffeine_content_mg": 300,
+        "image_url": "https://m.media-amazon.com/images/I/71wTpvEKPxL._SL1500_.jpg",
+        "category": "energy_drink"
+    },
+    {
+        "name": "5_Hour_Energy_57ml",
+        "caffeine_content_mg": 200,
+        "image_url": "https://m.media-amazon.com/images/I/51q-KEjnKcL._SL1000_.jpg",
+        "category": "energy_shot"
+    },
+    {
+        "name": "Starbucks_Grande_Coffee_473ml",
+        "caffeine_content_mg": 310,
+        "image_url": "https://m.media-amazon.com/images/I/71T9r5YQpML._SL1500_.jpg",
+        "category": "coffee"
+    },
+    {
+        "name": "Dunkin_Medium_Coffee_354ml",
+        "caffeine_content_mg": 210,
+        "image_url": "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085",
+        "category": "coffee"
+    },
+    {
+        "name": "Espresso_Shot_30ml",
+        "caffeine_content_mg": 64,
+        "image_url": "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04",
+        "category": "coffee"
+    },
+    {
+        "name": "Arizona_Green_Tea_680ml",
+        "caffeine_content_mg": 15,
+        "image_url": "https://m.media-amazon.com/images/I/81JZw-AhTWL._SL1500_.jpg",
+        "category": "tea"
+    },
+    {
+        "name": "Diet_Coke_355ml",
+        "caffeine_content_mg": 46,
+        "image_url": "https://m.media-amazon.com/images/I/71e9w7e49qL._SL1500_.jpg",
+        "category": "soda"
+    }
+]
