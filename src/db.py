@@ -384,6 +384,39 @@ class DatabaseDriver(object):
             })
         return consumptions
 
+    def get_consumption_by_id(self, id):
+        """
+        Retrieve a consumption log entry by its ID.
+        
+        Args:
+            id (int): The consumption log entry's ID
+        
+        Returns:
+            dict or None: A dictionary containing consumption log information if found,
+                         None otherwise
+        """
+        cursor = self.conn.execute("SELECT * FROM consumption_log WHERE id = ?;", (id,))
+        for row in cursor:
+            return {
+                "id": row[0],
+                "user_id": row[1],
+                "beverage_id": row[2],
+                "consumption_time": row[3],
+                "serving_count": row[4]
+            }
+        return None
+
+    def update_consumption_by_id(self, id, serving_count):
+        """
+        Update a consumption log entry's serving count.
+        
+        Args:
+            id (int): The consumption log entry's ID
+            serving_count (int): New serving count
+        """
+        self.conn.execute("UPDATE consumption_log SET serving_count = ? WHERE id = ?;", (serving_count, id))
+        self.conn.commit()
+
     def delete_consumption_by_id(self, id):
         """
         Delete a consumption log entry by its ID.

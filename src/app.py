@@ -251,32 +251,30 @@ def get_user_stats(user_id):
 
 
 # POST /consumptions - Log a beverage consumption
-@app.route("/consumptions", methods=["POST"])
-def log_consumption():
+@app.route("/users/<int:user_id>/consumptions", methods=["POST"])
+def log_consumption(user_id):
     """Log a new beverage consumption"""
     body = request.get_json()
+    user = DB.get_user_by_id(user_id)
+
+    if not user:
+        return failure_response("User not found", 404)
     if body is None:
         return failure_response("Request body must be JSON", 400)
     
-    user_id = body.get("user_id")
     beverage_id = body.get("beverage_id")
     serving_count = body.get("serving_count", 1)
 
-    if user_id is None or beverage_id is None:
-        return failure_response("'user_id' and 'beverage_id' are required", 400)
+    if beverage_id is None:
+        return failure_response("'beverage_id' is required", 400)
     
     try:
-        user_id = int(user_id)
         beverage_id = int(beverage_id)
         serving_count = int(serving_count)
     except (TypeError, ValueError):
-        return failure_response("'user_id', 'beverage_id', and 'serving_count' must be integers", 400)
-
+        return failure_response("'beverage_id' and 'serving_count' must be integers", 400)
     if serving_count <= 0:
         return failure_response("'serving_count' must be >= 1", 400)
-
-    if not DB.get_user_by_id(user_id):
-        return failure_response("User not found", 404)
     if not DB.get_beverage_by_id(beverage_id):
         return failure_response("Beverage not found", 404)
     
@@ -298,9 +296,11 @@ def delete_user(user_id):
 
 
 # DELETE /consumptions/<log_id> - Delete a consumption entry
-@app.route("/consumptions/<int:log_id>", methods=["DELETE"])
-def delete_consumption(log_id):
+@app.route("/users/<int:user_id>/consumptions/<int:log_id>", methods=["DELETE"])
+def delete_consumption(user_id, log_id):
     """Remove a consumption log entry"""
+    if not DB.get_user_by_id(user_id):
+        return failure_response("User not found", 404)
     consumption = DB.get_consumption_by_id(log_id)
     if not consumption:
         return failure_response("Consumption entry not found", 404)
@@ -337,9 +337,12 @@ def update_caffeine_limit(user_id):
 
 
 # PUT /consumptions/<log_id> - Edit a consumption entry
-@app.route("/consumptions/<int:log_id>", methods=["PUT"])
-def update_consumption(log_id):
+@app.route("/users/<int:user_id>/consumptions/<int:log_id>", methods=["PUT"])
+def update_consumption(user_id, log_id):
     """Edit an existing consumption log entry (serving count)"""
+    if not DB.get_user_by_id(user_id):
+        return failure_response("User not found", 404)
+    
     body = request.get_json()
     if body is None:
         return failure_response("Request body must be JSON", 400)
@@ -355,24 +358,16 @@ def update_consumption(log_id):
     except (TypeError, ValueError):
         return failure_response("'serving_count' must be an integer", 400)
     
-    consumption = None
-    all_users = DB.get_all_users()
-    for user in all_users:
-        user_consumptions = DB.get_consumption_by_user_id(user["id"])
-        for c in user_consumptions:
-            if c["id"] == log_id:
-                consumption = c
-                break
-        if consumption:
-            break
+    consumption = DB.get_consumption_by_id(log_id)
+    if not consumption:
+        return failure_response("Consumption entry not found", 404)
     
-    if consumption:
-        DB.delete_consumption_by_id(log_id)
-        DB.insert_consumption(consumption["user_id"], consumption["beverage_id"], new_serving_count)
-        updated_consumption = DB.get_consumption_by_id(log_id)
-        return success_response({"consumption_updated": updated_consumption})
+    if consumption["user_id"] != user_id:
+        return failure_response("Consumption entry does not belong to this user", 403)
     
-    return failure_response("Consumption entry not found", 404)
+    DB.update_consumption_by_id(log_id, new_serving_count)
+    updated_consumption = DB.get_consumption_by_id(log_id)
+    return success_response({"consumption_updated": updated_consumption})
 
 
 if __name__ == "__main__":
